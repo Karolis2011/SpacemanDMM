@@ -58,9 +58,17 @@ pub fn generate(ctx: Context, icon_cache: &IconCache) -> Result<Image, ()> {
         if y < min_y || y > max_y {
             continue;
         }
-        for (x, e) in row.iter().enumerate() {
+        'turf: for (x, e) in row.iter().enumerate() {
             if x < ctx.min.0 || x > ctx.max.0 {
                 continue;
+            }
+
+            for atom in atoms.get(e).expect("bad key").iter() {
+                for pass in render_passes.iter() {
+                    if !pass.late_filter_turf(&atom, objtree) {
+                        continue 'turf;
+                    }
+                }
             }
 
             let loc = (x as u32, y as u32);

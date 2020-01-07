@@ -7,12 +7,14 @@ mod random;
 mod structures;
 mod icon_smoothing;
 mod smart_cables;
+mod aurora;
 
 pub use self::transit_tube::TransitTube;
 pub use self::random::Random;
 pub use self::structures::{GravityGen, Spawners};
 pub use self::icon_smoothing::IconSmoothing;
 pub use self::smart_cables::SmartCables;
+pub use self::aurora::StationOnly;
 
 /// A map rendering pass.
 ///
@@ -73,6 +75,12 @@ pub trait RenderPass: Sync {
         objtree: &ObjectTree,
     ) -> bool { true }
 
+    /// Will not render turf based if it contains at last one atom that causes this to return false
+    fn late_filter_turf(&self,
+        atom: &Atom,
+        objtree: &ObjectTree,
+    ) -> bool { true }
+
     fn sprite_filter(&self,
         sprite: &Sprite,
     ) -> bool { true }
@@ -102,13 +110,14 @@ pub const RENDER_PASSES: &[RenderPassInfo] = &[
     pass!(Pretty, "pretty", "Add the minor cosmetic overlays for various objects.", true),
     pass!(Spawners, "spawners", "Replace object spawners with their spawned objects.", true),
     pass!(Overlays, "overlays", "Add overlays and underlays to atoms which usually have them.", true),
-    pass!(TransitTube, "transit-tube", "Add overlays to connect transit tubes together.", true),
+    pass!(TransitTube, "transit-tube", "Add overlays to connect transit tubes together.", false),
     pass!(GravityGen, "gravity-gen", "Expand the gravity generator to the full structure.", true),
     pass!(Wires, "only-powernet", "Render only power cables.", false),
     pass!(Pipes, "only-pipenet", "Render only atmospheric pipes.", false),
     pass!(FancyLayers, "fancy-layers", "Layer atoms according to in-game rules.", true),
-    pass!(IconSmoothing, "icon-smoothing", "Emulate the icon smoothing subsystem.", true),
-    pass!(SmartCables, "smart-cables", "Handle smart cable layout.", true),
+    pass!(IconSmoothing, "icon-smoothing", "Emulate the icon smoothing subsystem.", false),
+    pass!(SmartCables, "smart-cables", "Handle smart cable layout.", false),
+    pass!(StationOnly, "station-only", "Render only station areas.", true),
 ];
 
 pub fn configure(include: &str, exclude: &str) -> Vec<Box<dyn RenderPass>> {
@@ -172,9 +181,13 @@ impl RenderPass for HideSpace {
 #[derive(Default)]
 pub struct HideAreas;
 impl RenderPass for HideAreas {
-    fn path_filter(&self, path: &str) -> bool {
-        !subpath(path, "/area/")
+    // fn path_filter(&self, path: &str) -> bool {
+    //     !subpath(path, "/area/")
+    // }
+    fn late_filter(&self, atom: &Atom, _: &ObjectTree) -> bool {
+        !atom.istype("/area/")
     }
+
 }
 
 #[derive(Default)]
